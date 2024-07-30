@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 500px;
+            background: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+        }
+        .todo-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .todo-item.completed {
+            text-decoration: line-through;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>To-Do List</h1>
+        <form id="todo-form">
+            <input type="text" id="title" placeholder="New To-Do" required>
+            <button type="submit">Add</button>
+        </form>
+        <div id="todo-list"></div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('todo-form');
+            const titleInput = document.getElementById('title');
+            const todoList = document.getElementById('todo-list');
+    
+            form.addEventListener('submit', function(event) {
+                event.preventDefault();
+                const title = titleInput.value.trim();
+                if (title) {
+                    addToDo(title);
+                    titleInput.value = '';
+                }
+            });
+    
+            function fetchToDos() {
+                fetch('/api/todos/')
+                    .then(response => response.json())
+                    .then(data => {
+                        todoList.innerHTML = '';
+                        data.forEach(todo => {
+                            const todoItem = document.createElement('div');
+                            todoItem.classList.add('todo-item');
+                            if (todo.completed) {
+                                todoItem.classList.add('completed');
+                            }
+                            todoItem.innerHTML = `
+                                <span>${todo.title}</span>
+                                <button onclick="toggleComplete(${todo.id}, ${todo.completed})">
+                                    ${todo.completed ? 'Undo' : 'Complete'}
+                                </button>
+                                <button onclick="deleteToDo(${todo.id})">Delete</button>
+                            `;
+                            todoList.appendChild(todoItem); // Adiciona o item à lista
+                        });
+                    });
+            }
+    
+            function addToDo(title) {
+                fetch('/api/todos/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ title: title })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    fetchToDos();
+                });
+            }
+    
+            window.toggleComplete = function(id, completed) {
+                fetch(`/api/todos/${id}/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ completed: !completed })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    fetchToDos();
+                });
+            }
+    
+            window.deleteToDo = function(id) {
+                fetch(`/api/todos/${id}/`, {
+                    method: 'DELETE',
+                })
+                .then(response => {
+                    fetchToDos();
+                });
+            }
+    
+            fetchToDos();
+        });
+    </script>
+    
+</body>
+</html>
